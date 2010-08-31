@@ -1,0 +1,10 @@
+Build.PL
+lib/Method/Workflow.pm
+lib/Method/Workflow/Base.pm
+lib/Method/Workflow/Meta.pm
+lib/Method/Workflow/Stack.pm
+MANIFEST			This list of files
+t/acceptance.t
+t/Import.t
+README
+META.yml

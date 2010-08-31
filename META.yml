@@ -1,0 +1,37 @@
+---
+abstract: 'Create classes that provide workflow method keywords.'
+author:
+  - 'Chad Granum <exodist7@gmail.com>'
+build_requires:
+  Test::More: 0.88
+configure_requires:
+  Module::Build: 0.36
+generated_by: 'Module::Build version 0.3607'
+license: perl
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: 1.4
+name: Method-Workflow
+provides:
+  Method::Workflow:
+    file: lib/Method/Workflow.pm
+    version: 0.001
+  Method::Workflow::Base:
+    file: lib/Method/Workflow/Base.pm
+  Method::Workflow::Meta:
+    file: lib/Method/Workflow/Meta.pm
+  Method::Workflow::Stack:
+    file: lib/Method/Workflow/Stack.pm
+requires:
+  Carp: 0
+  Exporter::Declare: 0.024
+  Hook::AfterRuntime: 0.005
+  Scalar::Util: 0
+  Try::Tiny: 0
+  perl: 5.008
+resources:
+  bugtracker: http://github.com/exodist/Method-Workflow/issues
+  homepage: http://open-exodus.net/projects/Method-Workflow
+  license: http://dev.perl.org/licenses/
+  repository: http://github.com/exodist/Method-Workflow
+version: 0.001
