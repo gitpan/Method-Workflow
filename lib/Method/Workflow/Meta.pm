@@ -3,6 +3,7 @@ use strict;
 use warnings;
 use Exporter::Declare;
 use Carp qw/croak/;
+use Scalar::Util qw/ blessed /;
 
 our @EXPORT_OK = qw/meta_for/;
 our %METAS;
@@ -20,17 +21,57 @@ sub new {
 
 sub _new {
     my $class = shift;
-    return bless( [], $class );
+    return bless( [{},{}], $class );
 }
 
+sub add_items { goto &add_item }
 sub add_item {
     my $self = shift;
-    push @$self => @_;
+    $self->_add_item( $_ ) for @_;
+}
+
+sub _add_item {
+    my $self = shift;
+    my ( $item ) = @_;
+    my $key = $self->_item_key( $item );
+    push @{ $self->items_ref->{ $key }} => $item;
+}
+
+sub _item_key {
+    my $self = shift;
+    my ($item) = @_;
+    return '!' unless ref $item;
+    return blessed( $item ) || ref( $item );
+}
+
+sub pull_items {
+    my $self = shift;
+    my $key = $_[0] || '!';
+    return @{ delete( $self->items_ref->{ $key }) || [] };
 }
 
 sub items {
     my $self = shift;
-    return @$self;
+    return ( map { @$_ } values %{ $self->items_ref });
+}
+
+sub items_ref {
+    my $self = shift;
+    return $self->[0];
+}
+
+sub properties_ref { shift->[1] }
+
+sub properties { %{ shift->[1] }}
+
+sub prop { goto &property }
+
+sub property {
+    my $self = shift;
+    my $name = shift;
+    return unless $name;
+    ( $self->properties_ref->{ $name }) = @_ if @_;
+    return $self->properties_ref->{ $name };
 }
 
 1;
@@ -68,9 +109,31 @@ Will return the meta class for the specified item (autovivifying)
 
 Add an item to the meta data.
 
-=item @list = $meta->items();
+=item @list = $meta->items()
 
 Get a list of all items in the meta data.
+
+=item $list_ref = $meta->items_ref()
+
+Get a reference to the items hash ( type => \@list ).
+
+=item $value = $meta->property( $name )
+
+=item $value = $meta->prop( $name )
+
+Get the value of a named property.
+
+=item $meta->prop( $name, $value )
+
+=item $meta->property( $name, $value )
+
+Set the value of a named property.
+
+=item %props = $meta->properties()
+
+=item $props_ref = $meta->properties_ref()
+
+Get a ref to the properties hash.
 
 =back
 

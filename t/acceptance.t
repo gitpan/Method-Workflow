@@ -106,7 +106,7 @@ my $one;
 $one = TestBase->new->wflow( 'obj', sub {
     my $self = shift;
     is( $self, $one, "got self" );
-    is( $_[0], meta_for($one)->[0], "Second param is object being run" );
+    is( $_[0], (meta_for($one)->items)[0], "Second param is object being run" );
     is( $_[0], stack_current(), "Second param is also current stack" );
     is( stack_parent(), $one, "got parent" );
 

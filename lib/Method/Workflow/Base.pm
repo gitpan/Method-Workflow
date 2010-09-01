@@ -23,6 +23,7 @@ accessors qw/ _observed method name parent _parent_trace /;
 # Overridable
 sub init         { shift            }
 sub required     { qw/ method name /}
+sub pre_run_hook {                  }
 
 sub run {
     my ( $self, $root ) = @_;
@@ -99,10 +100,11 @@ sub run_workflow {
     my ( $owner, $root ) = @_;
     $owner ||= caller;
     $root ||= $owner;
-    my $stack = meta_for( $owner );
+    my $meta = meta_for( $owner );
     my @out;
 
     stack_push( $owner );
+
     # Run our method
     if ( blessed( $owner ) && $owner->isa( __PACKAGE__ )) {
         $owner->observe();
@@ -111,10 +113,20 @@ sub run_workflow {
     }
 
     # Recurse into children
-    for my $item ( $stack->items ) {
+
+    for my $item ( $meta->items ) {
+        try { $item->pre_run_hook(
+            owner => $owner,
+            meta  => $meta,
+            root  => $root,
+        )} catch { handle_error( $owner, $_ )}
+    }
+
+    for my $item ( $meta->items ) {
         try   { push @out => $item->run_workflow( $root )}
         catch { handle_error( $owner, $_ )               }
     }
+
     stack_pop( $owner );
     return @out;
 }
@@ -185,6 +197,14 @@ Default defenition:
 Should handle the work for this element and return its results. In most cases
 this simply runs the codeblock provided to the keyword at construction. This
 method is not responsible for child elements.
+
+=item $self->pre_run_hook( owner => $owner, meta => $meta, root => $root )
+
+When run_workflow() is called it will first call run() for the item upon which
+it was called. Then child element will be iterated twice, the first time will
+be to call pre_run_hook() giving each element a chance to manipulate itself, or
+possibly the present item's meta data. The secon iteration will call
+run_workflow() on the element.
 
 =item $self->handle_error( @errors )
 

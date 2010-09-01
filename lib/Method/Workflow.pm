@@ -9,7 +9,7 @@ use Devel::Declare::Parser::Fennec;
 use Scalar::Util qw/ blessed /;
 use Carp qw/confess/;
 
-our $VERSION = '0.001';
+our $VERSION = '0.002';
 our @EXPORT = qw/export export_ok export_to import/;
 
 sub _method_proto {
@@ -279,7 +279,7 @@ Results:
     ];
 
 
-=head3 IN AN ABJECT
+=head3 IN AN OBJECT
 
 ObjectWithWorkflow.pm:
 

@@ -200,7 +200,7 @@ SYNOPSYS
             'nestedB',
         ];
 
-   IN AN ABJECT
+   IN AN OBJECT
     ObjectWithWorkflow.pm:
 
         package ObjectWithWorkflow;
