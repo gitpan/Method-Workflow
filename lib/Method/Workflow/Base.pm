@@ -21,9 +21,10 @@ our $DEBUG = 0;
 accessors qw/ _observed method name parent _parent_trace /;
 
 # Overridable
-sub init         { shift            }
-sub required     { qw/ method name /}
-sub pre_run_hook {                  }
+sub init          { shift            }
+sub required      { qw/ method name /}
+sub pre_run_hook  {                  }
+sub post_run_hook {                  }
 
 sub run {
     my ( $self, $root ) = @_;
@@ -114,8 +115,8 @@ sub run_workflow {
 
     # Recurse into children
 
-    for my $item ( $meta->items ) {
-        try { $item->pre_run_hook(
+    for my $hook ( $meta->pre_run_hooks ) {
+        try { $hook->(
             owner => $owner,
             meta  => $meta,
             root  => $root,
@@ -125,6 +126,15 @@ sub run_workflow {
     for my $item ( $meta->items ) {
         try   { push @out => $item->run_workflow( $root )}
         catch { handle_error( $owner, $_ )               }
+    }
+
+    for my $hook ( $meta->post_run_hooks ) {
+        try { $hook->(
+            owner => $owner,
+            meta  => $meta,
+            root  => $root,
+            out   => \@out,
+        )} catch { handle_error( $owner, $_ )}
     }
 
     stack_pop( $owner );
@@ -143,6 +153,14 @@ sub parent_trace {
         );
     }
     $self->_parent_trace;
+}
+
+sub root {
+    my $self = shift;
+    my $parent = $self->parent;
+    return $parent->isa( __PACKAGE__ )
+        ? $parent->root
+        : $parent;
 }
 
 sub display {
@@ -198,14 +216,6 @@ Should handle the work for this element and return its results. In most cases
 this simply runs the codeblock provided to the keyword at construction. This
 method is not responsible for child elements.
 
-=item $self->pre_run_hook( owner => $owner, meta => $meta, root => $root )
-
-When run_workflow() is called it will first call run() for the item upon which
-it was called. Then child element will be iterated twice, the first time will
-be to call pre_run_hook() giving each element a chance to manipulate itself, or
-possibly the present item's meta data. The secon iteration will call
-run_workflow() on the element.
-
 =item $self->handle_error( @errors )
 
 How to handle errors that are encountered.
@@ -222,6 +232,50 @@ Default implementation:
         stack_pop( $owner );
         die @_;
     }
+
+=back
+
+=head2 HOOKS
+
+Hooks give you the opportunity to manipulate the metadata before any workflow
+elements of an item are run. They also let you run code after all elements have
+run.
+
+=over 4
+
+=item ($name => $coderef, ...) = $self->pre_run_hook( %existing )
+
+Should return a list of name => coderefs that will be run before all children
+when run_workflow() is called on an element that has children of your type.
+Name is mandatory, you can check the params to ensure the hook is not already
+installed.
+
+Hook will be run with the following parameters:
+
+    $hook->(
+        owner => $owner,
+        meta  => $meta,
+        root  => $root,
+    );
+
+=item (name => $coderef, ...) = $self->post_run_hook( %existing )
+
+Should return a list of name => coderefs that will be run after all children
+when run_workflow() is called on an element that has children of your type.
+Name is mandatory, you can check the params to ensure the hook is not already
+installed.
+
+Hook will be run with the following parameters:
+
+    $hook->(
+        owner => $owner,
+        meta  => $meta,
+        root  => $root,
+        out   => \@out,
+    );
+
+The 'out' parameter contains a reference to the array of items that will be
+returned by run_workflow, giving you a chance to add/remove items.
 
 =back
 

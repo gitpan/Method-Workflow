@@ -5,7 +5,6 @@ use warnings;
 use Scalar::Util qw/ blessed /;
 use Carp qw/croak/;
 use Exporter::Declare;
-use Method::Workflow::Meta;
 
 our @EXPORT_OK = qw/
     stack_current
@@ -69,7 +68,7 @@ B<Nothing is exported by default>
 
 Returns the top item on the stack
 
-=item stack_parent()
+=item $item = stack_parent()
 
 Returns the item just below the top.
 

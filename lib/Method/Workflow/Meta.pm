@@ -21,7 +21,7 @@ sub new {
 
 sub _new {
     my $class = shift;
-    return bless( [{},{}], $class );
+    return bless( [{},{},{},{}], $class );
 }
 
 sub add_items { goto &add_item }
@@ -35,6 +35,13 @@ sub _add_item {
     my ( $item ) = @_;
     my $key = $self->_item_key( $item );
     push @{ $self->items_ref->{ $key }} => $item;
+    if ( blessed( $item ) && $item->isa( 'Method::Workflow::Base' )) {
+        my @prerun = $item->pre_run_hook( %{ $self->pre_run_hooks_ref });
+        $self->pre_run_hooks( @prerun ) if @prerun;
+
+        my @postrun = $item->post_run_hook( %{ $self->post_run_hooks_ref });
+        $self->post_run_hooks( @postrun ) if @postrun;
+    }
 }
 
 sub _item_key {
@@ -72,6 +79,22 @@ sub property {
     return unless $name;
     ( $self->properties_ref->{ $name }) = @_ if @_;
     return $self->properties_ref->{ $name };
+}
+
+sub pre_run_hooks_ref { shift->[2] }
+sub pre_run_hooks {
+    my $self = shift;
+    my $ref = $self->pre_run_hooks_ref;
+    %$ref = ( %$ref, @_ ) if @_;
+    values %$ref;
+}
+
+sub post_run_hooks_ref { shift->[3] }
+sub post_run_hooks {
+    my $self = shift;
+    my $ref = $self->post_run_hooks_ref;
+    %$ref = ( %$ref, @_ ) if @_;
+    values %$ref;
 }
 
 1;
@@ -113,6 +136,11 @@ Add an item to the meta data.
 
 Get a list of all items in the meta data.
 
+=item @list = $meta->pull_items( $type )
+
+B<Remove all> items of $type from the items stored in meta and return them. If
+no type is given then all numeric/string (non-ref) items will be pulled.
+
 =item $list_ref = $meta->items_ref()
 
 Get a reference to the items hash ( type => \@list ).
@@ -134,6 +162,28 @@ Set the value of a named property.
 =item $props_ref = $meta->properties_ref()
 
 Get a ref to the properties hash.
+
+=item $hashref = $meta->pre_run_hooks_ref()
+
+Get the hashref of pre-run hooks.
+
+    { name => $sub, ... }
+
+=item $hashref = $meta->post_run_hooks_ref()
+
+Get the hashref of post-run hooks.
+
+    { name => $sub, ... }
+
+=item @hook_subs = $meta->pre_run_hooks( %mixin )
+
+Used to add hooks ( name => $sub ), or retrieve the hooks (only subs are
+returned).
+
+=item @hook_subs = $meta->post_run_hooks( %mixin )
+
+Used to add hooks ( name => $sub ), or retrieve the hooks (only subs are
+returned).
 
 =back
 

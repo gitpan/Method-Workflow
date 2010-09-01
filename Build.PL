@@ -13,6 +13,7 @@ my $build = Module::Build->new(
         'Scalar::Util' => 0,
         'Try::Tiny' => 0,
         'Exporter::Declare' => '0.024',
+        'Devel::Declare::Parser::Fennec' => '0.002',
         'perl' => 5.008,
         'Hook::AfterRuntime' => '0.005',
         'Carp' => 0,
