@@ -9,7 +9,7 @@ use Devel::Declare::Parser::Fennec;
 use Scalar::Util qw/ blessed /;
 use Carp qw/confess/;
 
-our $VERSION = '0.003';
+our $VERSION = '0.004';
 our @EXPORT = qw/export export_ok export_to import/;
 
 sub _method_proto {
@@ -21,6 +21,12 @@ sub _method_proto {
 export keyword {
     my ( $keyword ) = @_;
     my $workflow = caller;
+
+    {
+        no strict 'refs';
+        no warnings 'redefine';
+        *{"$workflow\::keyword"} = sub { $keyword };
+    }
 
     $workflow->export(
         $keyword,

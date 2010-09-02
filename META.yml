@@ -15,7 +15,7 @@ name: Method-Workflow
 provides:
   Method::Workflow:
     file: lib/Method/Workflow.pm
-    version: 0.003
+    version: 0.004
   Method::Workflow::Base:
     file: lib/Method/Workflow/Base.pm
   Method::Workflow::Meta:
@@ -35,4 +35,4 @@ resources:
   homepage: http://open-exodus.net/projects/Method-Workflow
   license: http://dev.perl.org/licenses/
   repository: http://github.com/exodist/Method-Workflow
-version: 0.003
+version: 0.004

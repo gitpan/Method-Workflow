@@ -21,10 +21,11 @@ our $DEBUG = 0;
 accessors qw/ _observed method name parent _parent_trace /;
 
 # Overridable
-sub init          { shift            }
-sub required      { qw/ method name /}
-sub pre_run_hook  {                  }
-sub post_run_hook {                  }
+sub init          { shift                   }
+sub required      { qw/ method name parent /}
+sub pre_run_hook  {                         }
+sub post_run_hook {                         }
+sub import_hook   {                         }
 
 sub run {
     my ( $self, $root ) = @_;
@@ -64,6 +65,8 @@ gen_export_ok end_class_workflow {
 sub _import {
     my $class = shift;
     my ( $caller, $spec ) = @_;
+
+    $class->import_hook( $caller, $spec );
 
     __PACKAGE__->export_to( $caller, undef, 'run_workflow' )
         unless $caller->can( 'run_workflow' );
@@ -243,6 +246,13 @@ run.
 
 =over 4
 
+=item $class->import_hook( $caller, $specs )
+
+Override this if you need to do something on import. The first argument is the
+original caller's class. The second argument is the specs hash that comes from
+L<Exporter::Declare>. Any orguments from import that start with ':' will be
+listed here (including import lists).
+
 =item ($name => $coderef, ...) = $self->pre_run_hook( %existing )
 
 Should return a list of name => coderefs that will be run before all children
@@ -347,8 +357,9 @@ Turns debug mode on and off (Can not be used as a method).
 
 =head1 NOTE ON IMPORT
 
-Do not override import() or _import(). Wrap _import() if you must, but it is
-not recommended.
+Do not override import() or _import().
+
+If you need to do something on import you should override import_hook().
 
 =head1 FENNEC PROJECT
 
