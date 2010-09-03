@@ -32,18 +32,17 @@ sub run {
     $self->method->( $root, $self );
 }
 
-sub handle_error {
-    my $owner = shift;
-
-    $owner->handle_error( @_ )
-        if $owner->can( 'handle_error' )
-       and $owner->can( 'handle_error' ) != \&handle_error;
-
-    stack_pop( $owner );
-    die @_;
-}
-
 # Not Overridable
+
+sub handle_error {
+    my ( $owner, $root, @errors ) = @_;
+
+    my $handler = meta_for( $owner )->prop( 'error_handler' )
+               || meta_for( $root )->prop( 'error_handler' )
+               || sub { stack_pop( $owner ); die join( ' ', @errors )};
+
+    $handler->( $owner, $root, @errors );
+}
 
 sub debug {
     ($DEBUG) = @_ if @_;
@@ -113,7 +112,7 @@ sub run_workflow {
     if ( blessed( $owner ) && $owner->isa( __PACKAGE__ )) {
         $owner->observe();
         try   { push @out => $owner->run( $root )}
-        catch { handle_error( $owner, $_ )       }
+        catch { handle_error( $owner, $root, $_ )}
     }
 
     # Recurse into children
@@ -123,12 +122,12 @@ sub run_workflow {
             owner => $owner,
             meta  => $meta,
             root  => $root,
-        )} catch { handle_error( $owner, $_ )}
+        )} catch { handle_error( $owner, $root, $_ )}
     }
 
     for my $item ( $meta->items ) {
         try   { push @out => $item->run_workflow( $root )}
-        catch { handle_error( $owner, $_ )               }
+        catch { handle_error( $owner, $root, $_ )        }
     }
 
     for my $hook ( $meta->post_run_hooks ) {
@@ -137,7 +136,7 @@ sub run_workflow {
             meta  => $meta,
             root  => $root,
             out   => \@out,
-        )} catch { handle_error( $owner, $_ )}
+        )} catch { handle_error( $owner, $root, $_ )}
     }
 
     stack_pop( $owner );
@@ -218,23 +217,6 @@ Default defenition:
 Should handle the work for this element and return its results. In most cases
 this simply runs the codeblock provided to the keyword at construction. This
 method is not responsible for child elements.
-
-=item $self->handle_error( @errors )
-
-How to handle errors that are encountered.
-
-Default implementation:
-
-    sub handle_error {
-        my $owner = shift;
-
-        $owner->handle_error( @_ )
-            if $owner->can( 'handle_error' )
-           and $owner->can( 'handle_error' ) != \&handle_error;
-
-        stack_pop( $owner );
-        die @_;
-    }
 
 =back
 
@@ -325,6 +307,10 @@ In debug mode destruction will issue a warning when the item is destroyed
 without having been observed. This is toggled to true when run_workflow() is
 called.
 
+=item error_handler( sub { my ( $owner, $root, @errors ) = @_; ... })
+
+Define a handler to handle exceptions thrown by workflow elements.
+
 =back
 
 =head1 EXPORTS
@@ -335,6 +321,10 @@ called.
 
 Whatever keyword you define with the 'keyword' keyword will be exported as a
 construction shortcut to define elements of this type declaratively.
+
+=item error_handler { my ( $owner, $root, @errors ) = @_; ... }
+
+Define a handler to handle exceptions thrown by workflow elements.
 
 =item run_workflow()
 

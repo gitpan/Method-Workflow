@@ -59,6 +59,10 @@ sub pull_items {
 
 sub items {
     my $self = shift;
+
+    return @{ $self->items_ref->{ $_[0] } || []}
+        if @_;
+
     return ( map { @$_ } values %{ $self->items_ref });
 }
 

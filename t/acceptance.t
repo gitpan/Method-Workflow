@@ -154,4 +154,14 @@ is(
   "Trace"
 );
 
+my $save;
+$one = TestBase->new->wflow( "aaa", sub {
+    die "The error";
+});
+$one->error_handler( sub {
+    ( my $owner, my $root, $save ) = @_
+});
+$one->run_workflow;
+like( $save, qr/The error at/, "Error Handler" );
+
 done_testing;

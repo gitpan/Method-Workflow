@@ -9,8 +9,16 @@ use Devel::Declare::Parser::Fennec;
 use Scalar::Util qw/ blessed /;
 use Carp qw/confess/;
 
-our $VERSION = '0.004';
+our $VERSION = '0.005';
 our @EXPORT = qw/export export_ok export_to import/;
+
+sub error_handler {
+    my $owner = blessed( $_[0] )
+        ? shift( @_ )
+        : stack_current;
+    my ( $code ) = @_;
+    meta_for( $owner )->prop( 'error_handler', $code );
+}
 
 sub _method_proto {
     return ( $_[0] ) if @_ == 1;
@@ -27,6 +35,8 @@ export keyword {
         no warnings 'redefine';
         *{"$workflow\::keyword"} = sub { $keyword };
     }
+
+    $workflow->export( 'error_handler', 'codeblock', \&error_handler );
 
     $workflow->export(
         $keyword,
