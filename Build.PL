@@ -17,6 +17,7 @@ my $build = Module::Build->new(
         'perl' => 5.008,
         'Hook::AfterRuntime' => '0.005',
         'Carp' => 0,
+        'aliased' => 0,
     },
     build_requires => {
         'Test::More' => 0.88,

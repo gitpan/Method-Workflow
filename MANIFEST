@@ -3,8 +3,10 @@ lib/Method/Workflow.pm
 lib/Method/Workflow/Base.pm
 lib/Method/Workflow/Meta.pm
 lib/Method/Workflow/Stack.pm
+lib/Method/Workflow/Task.pm
 MANIFEST			This list of files
+META.yml
+README
 t/acceptance.t
 t/Import.t
-README
-META.yml
+t/tasks.t

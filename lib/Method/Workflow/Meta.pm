@@ -21,8 +21,14 @@ sub new {
 
 sub _new {
     my $class = shift;
-    return bless( [{},{},{},{}], $class );
+    return bless( [{},{},{},{},[]], $class );
 }
+
+sub items_ref          { shift->[0] }
+sub properties_ref     { shift->[1] }
+sub pre_run_hooks_ref  { shift->[2] }
+sub post_run_hooks_ref { shift->[3] }
+sub tasks_ref          { shift->[4] }
 
 sub add_items { goto &add_item }
 sub add_item {
@@ -66,14 +72,7 @@ sub items {
     return ( map { @$_ } values %{ $self->items_ref });
 }
 
-sub items_ref {
-    my $self = shift;
-    return $self->[0];
-}
-
-sub properties_ref { shift->[1] }
-
-sub properties { %{ shift->[1] }}
+sub properties { %{ shift->properties_ref }}
 
 sub prop { goto &property }
 
@@ -85,7 +84,6 @@ sub property {
     return $self->properties_ref->{ $name };
 }
 
-sub pre_run_hooks_ref { shift->[2] }
 sub pre_run_hooks {
     my $self = shift;
     my $ref = $self->pre_run_hooks_ref;
@@ -93,12 +91,18 @@ sub pre_run_hooks {
     values %$ref;
 }
 
-sub post_run_hooks_ref { shift->[3] }
 sub post_run_hooks {
     my $self = shift;
     my $ref = $self->post_run_hooks_ref;
     %$ref = ( %$ref, @_ ) if @_;
     values %$ref;
+}
+
+sub tasks { @{ shift->tasks_ref }}
+
+sub add_task {
+    my $self = shift;
+    push @{ $self->tasks_ref } => @_;
 }
 
 1;

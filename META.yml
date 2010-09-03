@@ -15,13 +15,15 @@ name: Method-Workflow
 provides:
   Method::Workflow:
     file: lib/Method/Workflow.pm
-    version: 0.005
+    version: 0.006
   Method::Workflow::Base:
     file: lib/Method/Workflow/Base.pm
   Method::Workflow::Meta:
     file: lib/Method/Workflow/Meta.pm
   Method::Workflow::Stack:
     file: lib/Method/Workflow/Stack.pm
+  Method::Workflow::Task:
+    file: lib/Method/Workflow/Task.pm
 requires:
   Carp: 0
   Devel::Declare::Parser::Fennec: 0.002
@@ -29,10 +31,11 @@ requires:
   Hook::AfterRuntime: 0.005
   Scalar::Util: 0
   Try::Tiny: 0
+  aliased: 0
   perl: 5.008
 resources:
   bugtracker: http://github.com/exodist/Method-Workflow/issues
   homepage: http://open-exodus.net/projects/Method-Workflow
   license: http://dev.perl.org/licenses/
   repository: http://github.com/exodist/Method-Workflow
-version: 0.005
+version: 0.006

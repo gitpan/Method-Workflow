@@ -7,18 +7,20 @@ use Hook::AfterRuntime;
 use Exporter::Declare;
 use Carp qw/croak/;
 use Scalar::Util qw/ blessed /;
-use Method::Workflow qw/accessors/;
-use Method::Workflow::Meta qw/ meta_for /;
+use Method::Workflow qw/ accessors run_workflow meta_shortcuts /;
+use aliased 'Method::Workflow::Task';
 
 use Method::Workflow::Stack qw/
     stack_push stack_pop stack_current
 /;
 
 our @CARP_NOT = ( 'Method::Workflow', 'Exporter::Declare' );
-our @EXPORT_OK = qw/ run_workflow debug /;
+our @EXPORT_OK = qw/ run_workflow /;
 our $DEBUG = 0;
 
-accessors qw/ _observed method name parent _parent_trace /;
+accessors qw/
+    _observed method name parent _parent_trace _debug
+/, Task->order_options;
 
 # Overridable
 sub init          { shift                   }
@@ -29,27 +31,22 @@ sub import_hook   {                         }
 
 sub run {
     my ( $self, $root ) = @_;
-    $self->method->( $root, $self );
+    my @out = $self->method->( $root, $self );
+    @out;
 }
 
 # Not Overridable
 
-sub handle_error {
-    my ( $owner, $root, @errors ) = @_;
-
-    my $handler = meta_for( $owner )->prop( 'error_handler' )
-               || meta_for( $root )->prop( 'error_handler' )
-               || sub { stack_pop( $owner ); die join( ' ', @errors )};
-
-    $handler->( $owner, $root, @errors );
-}
+sub observe { shift->_observed(1) }
 
 sub debug {
-    ($DEBUG) = @_ if @_;
-    $DEBUG;
-}
+    my $self = shift;
 
-sub observe { shift->_observed(1) }
+    $self->parent_trace
+        if $_[0] && !$self->_parent_trace;
+
+    return $self->_debug( @_ );
+}
 
 gen_export_ok start_class_workflow {
     my ( $exporter, $importer ) = @_;
@@ -67,8 +64,13 @@ sub _import {
 
     $class->import_hook( $caller, $spec );
 
-    __PACKAGE__->export_to( $caller, undef, 'run_workflow' )
-        unless $caller->can( 'run_workflow' );
+    for my $sub ( qw/run_workflow/, meta_shortcuts() ) {
+        Method::Workflow->export_to( $caller, undef, $sub )
+            unless $caller->can( $sub );
+    }
+
+    Task->export_to( $caller, undef, 'task' )
+        unless $caller->can( 'task' );
 
     unless ( $spec && $spec->{ 'classlevel' }) {
         __PACKAGE__->export_to(
@@ -95,52 +97,8 @@ sub new {
         for $class->required;
 
     my $self = bless( \%proto, $class )->init(%proto);
-    $self->parent_trace if debug();
+    $self->parent_trace if $self->debug();
     return $self;
-}
-
-sub run_workflow {
-    my ( $owner, $root ) = @_;
-    $owner ||= caller;
-    $root ||= $owner;
-    my $meta = meta_for( $owner );
-    my @out;
-
-    stack_push( $owner );
-
-    # Run our method
-    if ( blessed( $owner ) && $owner->isa( __PACKAGE__ )) {
-        $owner->observe();
-        try   { push @out => $owner->run( $root )}
-        catch { handle_error( $owner, $root, $_ )}
-    }
-
-    # Recurse into children
-
-    for my $hook ( $meta->pre_run_hooks ) {
-        try { $hook->(
-            owner => $owner,
-            meta  => $meta,
-            root  => $root,
-        )} catch { handle_error( $owner, $root, $_ )}
-    }
-
-    for my $item ( $meta->items ) {
-        try   { push @out => $item->run_workflow( $root )}
-        catch { handle_error( $owner, $root, $_ )        }
-    }
-
-    for my $hook ( $meta->post_run_hooks ) {
-        try { $hook->(
-            owner => $owner,
-            meta  => $meta,
-            root  => $root,
-            out   => \@out,
-        )} catch { handle_error( $owner, $root, $_ )}
-    }
-
-    stack_pop( $owner );
-    return @out;
 }
 
 sub parent_trace {
@@ -172,7 +130,7 @@ sub display {
 
 sub DESTROY {
     my $self = shift;
-    return if $self->_observed || !debug();
+    return if $self->_observed || !$self->debug();
 
     warn $self->display . " was never observed.\n"
         . <<EOT . $self->parent_trace . "\n\n";
@@ -245,9 +203,9 @@ installed.
 Hook will be run with the following parameters:
 
     $hook->(
-        owner => $owner,
-        meta  => $meta,
-        root  => $root,
+        current => $current,
+        meta    => $meta,
+        root    => $root,
     );
 
 =item (name => $coderef, ...) = $self->post_run_hook( %existing )
@@ -260,10 +218,10 @@ installed.
 Hook will be run with the following parameters:
 
     $hook->(
-        owner => $owner,
-        meta  => $meta,
-        root  => $root,
-        out   => \@out,
+        current => $current,
+        meta    => $meta,
+        root    => $root,
+        out     => \@out,
     );
 
 The 'out' parameter contains a reference to the array of items that will be
@@ -279,14 +237,14 @@ returned by run_workflow, giving you a chance to add/remove items.
 
 Create a new instance.
 
-=item $self->run_workflow( $owner, $root )
+=item $self->run_workflow( $current, $root )
 
 Run the workflow element and children.
 
 Defaults:
 
-    $owner ||= caller();
-    $root ||= $owner;
+    $current ||= caller();
+    $root ||= $current;
 
 =item $self->parent_trace()
 
@@ -307,7 +265,7 @@ In debug mode destruction will issue a warning when the item is destroyed
 without having been observed. This is toggled to true when run_workflow() is
 called.
 
-=item error_handler( sub { my ( $owner, $root, @errors ) = @_; ... })
+=item error_handler( sub { my ( $current, $root, @errors ) = @_; ... })
 
 Define a handler to handle exceptions thrown by workflow elements.
 
@@ -339,11 +297,14 @@ Used to start a class-level workflow.
 
 Used to end a class-level workflow.
 
-=item debug( $bool )
-
-Turns debug mode on and off (Can not be used as a method).
-
 =back
+
+=head1 DEBUGGING
+
+Use the $obj->debug( $bool ) accessor to turn debugging for an object on or
+off. You can also enable debugging when you define your workflow element:
+
+    wflow name (debug => 1) { ... }
 
 =head1 NOTE ON IMPORT
 

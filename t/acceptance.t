@@ -1,6 +1,14 @@
 #!/usr/bin/perl;
 use strict;
 use warnings;
+
+# In this case test count is important, do not use done_testing
+# Some tests are inside workflows, if the workflows just didn't run we would
+# not know.
+use Test::More tests => 23;
+use Method::Workflow::Stack qw/stack_current stack_parent/;
+use Method::Workflow::Meta qw/meta_for/;
+
 BEGIN {
     package WorkflowClass;
     use strict;
@@ -90,11 +98,7 @@ BEGIN {
     is( stack_current(), undef, "no current" );
 }
 
-use Test::More;
 use WorkflowClass;
-use Method::Workflow::Stack qw/stack_current stack_parent/;
-use Method::Workflow::Meta qw/meta_for/;
-use Method::Workflow::Base qw/debug/;
 
 is_deeply(
     [ $_->run_workflow() ],
@@ -163,5 +167,3 @@ $one->error_handler( sub {
 });
 $one->run_workflow;
 like( $save, qr/The error at/, "Error Handler" );
-
-done_testing;
