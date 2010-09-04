@@ -17,7 +17,7 @@ BEGIN {
     $INC{'WorkflowClass.pm'} = __FILE__;
 }
 
-use WorkflowClass;
+use WorkflowClass ':random';
 
 my @ran;
 

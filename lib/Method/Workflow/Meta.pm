@@ -21,7 +21,7 @@ sub new {
 
 sub _new {
     my $class = shift;
-    return bless( [{},{},{},{},[]], $class );
+    return bless( [{},{},{},{},{}], $class );
 }
 
 sub items_ref          { shift->[0] }
@@ -53,8 +53,7 @@ sub _add_item {
 sub _item_key {
     my $self = shift;
     my ($item) = @_;
-    return '!' unless ref $item;
-    return blessed( $item ) || ref( $item );
+    return blessed( $item ) || ref( $item ) || '!';
 }
 
 sub pull_items {
@@ -98,11 +97,43 @@ sub post_run_hooks {
     values %$ref;
 }
 
-sub tasks { @{ shift->tasks_ref }}
-
+sub add_tasks { goto &add_task }
 sub add_task {
     my $self = shift;
-    push @{ $self->tasks_ref } => @_;
+    $self->_add_task( $_ ) for @_;
+}
+
+sub _add_task {
+    my $self = shift;
+    my ( $task ) = @_;
+    my $key = $self->_task_key( $task );
+    push @{ $self->tasks_ref->{ $key }} => $task;
+}
+
+sub _task_key {
+    my $self = shift;
+    my ($task) = @_;
+    my $workflow = $task->workflow;
+    return blessed( $workflow ) || ref( $workflow ) || '!';
+}
+
+sub pull_tasks {
+    my $self = shift;
+    my $key = $_[0] || return;
+    return @{ delete( $self->tasks_ref->{ $key }) || [] };
+}
+
+sub task_keys {
+    keys %{ shift->tasks_ref };
+}
+
+sub tasks {
+    my $self = shift;
+
+    return @{ $self->tasks_ref->{ $_[0] } || []}
+        if @_;
+
+    return ( map { @$_ } values %{ $self->tasks_ref });
 }
 
 1;

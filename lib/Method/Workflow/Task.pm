@@ -33,7 +33,7 @@ for my $accessor ( @ARRAY_ACCESSORS ) {
     *$accessor = $sub;
 }
 
-export( 'task', 'fennec', sub {
+export task fennec {
     my ( $owner, $return_owner );
     if ( blessed( $_[0] )) {
         $owner = shift( @_ );
@@ -45,32 +45,51 @@ export( 'task', 'fennec', sub {
     }
 
     my $name = shift;
-
     my ( $method, %proto ) = Method::Workflow::_method_proto( @_ );
-
     my $root = $owner->root;
 
-    meta_for($root)->add_task(
-        __PACKAGE__->new(
+    my $task = __PACKAGE__->new(
+        %proto,
+        task => Method::Workflow::Base->new(
             %proto,
-            task => Method::Workflow::Base->new(
-                %proto,
-                name => $name,
-                method => $method,
-                parent => $root,
-            ),
-            owner => $root,
+            name => $name,
+            method => $method,
+            parent => $root,
         ),
+        owner => $root,
+        workflow => $owner,
     );
+
+    if ( $owner->isa( 'Method::Workflow::Base' )
+    && (my ( $order, $orderant ) = $owner->ordering )) {
+        my $meta = meta_for($orderant);
+        if ( "$orderant" eq "$owner" && !$meta->prop('order_root_task') ) {
+            my $root_task = __PACKAGE__->new(
+                _ordering => $order,
+                owner => $root,
+                workflow => $owner,
+            );
+
+            $meta->prop( 'order_root_task', $root_task );
+            meta_for($root)->add_task( $root_task );
+        }
+        meta_for($orderant)->prop('order_root_task')->add_subtasks( $task );
+    }
+    else {
+        meta_for($root)->add_task( $task );
+    }
 
     return $owner if $return_owner;
     return;
-});
+}
 
 sub new {
     my $class = shift;
     my %proto = @_;
-    return bless( \%proto, $class );
+    return bless({
+        subtasks_ref => [],
+        %proto,
+    }, $class );
 }
 
 sub name {
@@ -106,12 +125,12 @@ sub ordering {
     return $self->_ordering()
         if $self->_ordering();
 
-    my $owner = $self->owner;
-    my $specs = meta_for( blessed( $owner ) || $owner )->prop( 'specs' );
-    my ($order) = grep { $specs->{$_} }
-        $self->order_options;
+    if ( $self->workflow && $self->workflow->isa( 'Method::Workflow::Base' )) {
+        my $order = $self->workflow->ordering;
+        return $order if $order;
+    }
 
-    return $order || 'ordered'
+    return 'ordered';
 }
 
 sub run_task {

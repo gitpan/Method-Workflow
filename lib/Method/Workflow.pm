@@ -10,7 +10,7 @@ use Scalar::Util qw/ blessed /;
 use Carp qw/confess/;
 use Try::Tiny;
 
-our $VERSION = '0.006';
+our $VERSION = '0.007';
 our @EXPORT = qw/export export_ok export_to import accessors /;
 our @EXPORT_OK = qw/ handle_error run_workflow meta_shortcuts /;
 our @META_SHORTCUTS = qw/ error_handler task_runner /;
@@ -164,15 +164,23 @@ sub _run_children {
 sub _run_tasks {
     my ( $current, $root, $meta, $out ) = @_;
 
-    my @tasks = $meta->tasks;
-    return unless @tasks;
+    return unless $meta->tasks;
+    my $TASK = 'Method::Workflow::Task';
 
-    my $task = Method::Workflow::Task->new(
-        subtasks_ref => \@tasks
-    );
+    for my $key ( $meta->task_keys ) {
+        my @tasks = $meta->pull_tasks( $key );
+        my $specs = $meta->prop( $key );
+        my ($order) = $specs ? grep { $specs->{$_} } $TASK->order_options
+                             : (undef);
 
-    try { push @$out => $task->run_task()     }
-    catch { handle_error( $task, $current, $_, )};
+        my $task = $TASK->new(
+            subtasks_ref => \@tasks,
+            _ordering => $order,
+        );
+
+        try { push @$out => $task->run_task()     }
+        catch { handle_error( $task, $current, $_, )};
+    }
 }
 
 sub _run_post_run_hooks {

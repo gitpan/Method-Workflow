@@ -8,6 +8,7 @@ use Exporter::Declare;
 use Carp qw/croak/;
 use Scalar::Util qw/ blessed /;
 use Method::Workflow qw/ accessors run_workflow meta_shortcuts /;
+use Method::Workflow::Meta qw/ meta_for /;
 use aliased 'Method::Workflow::Task';
 
 use Method::Workflow::Stack qw/
@@ -39,6 +40,15 @@ sub run {
 
 sub observe { shift->_observed(1) }
 
+sub ordering {
+    my $self = shift;
+    my ($order) = grep { $self->$_ } Task->order_options;
+    return( wantarray ? ( $order, $self ) : $order )
+        if $order;
+    return unless $self->parent->isa( __PACKAGE__ );
+    return $self->parent->ordering;
+}
+
 sub debug {
     my $self = shift;
 
@@ -61,6 +71,8 @@ gen_export_ok end_class_workflow {
 sub _import {
     my $class = shift;
     my ( $caller, $spec ) = @_;
+
+    meta_for( $caller )->prop( $class, $spec );
 
     $class->import_hook( $caller, $spec );
 
