@@ -2,87 +2,144 @@ package Method::Workflow::Stack;
 use strict;
 use warnings;
 
-use Scalar::Util qw/ blessed /;
-use Carp qw/croak/;
 use Exporter::Declare;
+use Exodist::Util qw/inject_sub blessed weaken /;
+use Carp qw/croak/;
+
+our @EXPORT = qw/
+    keyword
+/;
 
 our @EXPORT_OK = qw/
-    stack_current
     stack_push
     stack_pop
-    stack_parent
+    stack_peek
+    stack_trace
 /;
 
-our @CARP_NOT = qw/
-    Method::Workflow
-    Method::Workflow::Base
-    Method::Workflow::Stack
-    Exporter::Declare
-/;
+my @STACK;
+sub stack_trace {
+    my $idx = $#STACK;
+    my @out;
+    do {
+        unshift @out => $STACK[$idx];
+    } until $STACK[$idx--]->_acting_parent;
+    return \@out;
+}
 
-our @STACK;
+sub stack_peek {
+    return unless @STACK;
+    # -1 makes it work as method or function
+    my ($num) = $_[-1];
+    $num = -1 unless defined $num && $num =~ m/^-?\d+$/;
+    return $STACK[$num];
+}
 
-sub stack_current { $STACK[-1]        }
-sub stack_push    { push @STACK => @_ }
-sub stack_parent  { $STACK[-2]        }
+sub stack_push {
+    my $workflow = shift;
+    croak "Only instances of " . __PACKAGE__ . " and subclasses can be added to the stack."
+        unless $workflow->isa( 'Method::Workflow' );
+    push @STACK => $workflow;
+    weaken( $STACK[-1] );
+    return $workflow;
+}
 
 sub stack_pop {
-    my ( $desired ) = @_;
+    my $workflow = shift;
+    my $current = stack_peek();
 
-    croak "You must specify the item that should be popped."
-        unless $desired;
+    croak "You must specify workflow to pop"
+        unless $workflow;
 
-    my $got = pop @STACK;
+    croak "No current workflow to pop"
+        unless $current;
 
-    croak "Nothing to pop."
-        unless $got;
+    croak(
+        "Inconsistant stack, attempt to pop '"
+        . $workflow->name
+        . "', but '"
+        . $current->name
+        . "' is the current top item."
+    ) unless $workflow == $current;
 
-    croak "Item popped does not match desired item."
-        unless "$got" eq "$desired";
+    pop @STACK;
+    return $workflow;
+}
 
-    return 1;
+sub keyword {
+    my ( $keyword ) = @_;
+    my $caller = caller;
+
+    inject_sub( $caller, 'keyword', sub { $keyword }, 1 );
+
+    $caller->export(
+        $keyword,
+        'fennec',
+        sub {
+            my $name = shift;
+            my ( $method, %proto ) = _method_proto( @_ );
+            my $current = Method::Workflow::stack_peek();
+
+            croak "No current workflow, did you forget to run start_workflow() or \$workflow->begin()?"
+                unless $current;
+
+            $current->add_item(
+                $caller->new(
+                    %proto,
+                    name => $name || undef,
+                    method => $method || undef,
+                ),
+            );
+        }
+    );
+}
+
+sub _method_proto {
+    return ( $_[0] ) if @_ == 1;
+    my %proto = @_;
+    return ( $proto{ method }, %proto );
 }
 
 1;
 
+__END__
+
 =head1 NAME
 
-Method::Workflow::Stack - Stack manager for Method::Workflow.
+Method::Workflow::Stack - Stack package for Method::Workflow
 
 =head1 DESCRIPTION
 
-This is the stack manager for L<Method::Workflow>. Use the exported functions
-for more advanced workflow implementations.
+This package provides tools for manipulating the workflow stack
 
-=head1 EXPORTED FUNCTIONS
+=head1 EXPORTS
 
-=head2 DEFAULT
+=head2 EXPORTED BY DEFAULT
 
-B<Nothing is exported by default>
+=item keyword( $name )
 
-=head2 ON REQUEST
+Used by subclasses of L<Method::Workflow> to generate and export a declaritive
+keyword.
 
-=over 4
-
-=item $item = stack_current()
-
-Returns the top item on the stack
-
-=item $item = stack_parent()
-
-Returns the item just below the top.
+=head2 EXPORTED UPON REQUEST
 
 =item stack_push( $item )
 
-Push an item on to the stack, all workflow elements generated via keyword will
-be added to this item until it is popped or something else is pushed.
+Add a workflow to the stack.
 
 =item stack_pop( $item )
 
-Remove the top-most item from the stack, you must provide the item you expect to
-be popped for consistancy checking.
+Remove a workflow from the stack. You must specify what item you expct to be
+popped for consistancy checking.
 
-=back
+=item $item = stack_peek()
+
+Get the topmost item on the stack.
+
+=item $items_ref = stack_trace()
+
+Get a trace. This will return every element in the stack from the top down to
+the topmost parent workflow.
 
 =head1 FENNEC PROJECT
 

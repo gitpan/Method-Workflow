@@ -1,12 +1,13 @@
 Build.PL
 lib/Method/Workflow.pm
-lib/Method/Workflow/Base.pm
-lib/Method/Workflow/Meta.pm
 lib/Method/Workflow/Stack.pm
 lib/Method/Workflow/Task.pm
 MANIFEST			This list of files
-META.yml
+t/Acceptance.t
+t/ClassLevel.t
+t/Ordering.t
+t/Stack.t
+t/Task.t
+t/Workflow.t
 README
-t/acceptance.t
-t/Import.t
-t/tasks.t
+META.yml

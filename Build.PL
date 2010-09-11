@@ -13,14 +13,17 @@ my $build = Module::Build->new(
         'Scalar::Util' => 0,
         'Try::Tiny' => 0,
         'Exporter::Declare' => '0.024',
+        'Exodist::Util' => '0.002',
         'Devel::Declare::Parser::Fennec' => '0.002',
         'perl' => 5.008,
-        'Hook::AfterRuntime' => '0.005',
         'Carp' => 0,
-        'aliased' => 0,
+    },
+    recommonds => {
+        'Parallel::Runner' => '0.008',
     },
     build_requires => {
         'Test::More' => 0.88,
+        'Test::Exception' => 0,
     },
     meta_merge => {
         resources => {
