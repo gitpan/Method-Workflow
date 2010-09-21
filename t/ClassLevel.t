@@ -7,29 +7,25 @@ use Test::More;
 BEGIN {
     package A;
     use Method::Workflow;
-    our $WF = start_workflow;
     workflow A { 'A' }
 }
 BEGIN {
     package B;
     use Method::Workflow;
-    our $WF = start_workflow;
     workflow B { 'B' }
 }
 BEGIN {
     package C;
     use Method::Workflow;
-    our $WF = start_workflow;
     workflow C { 'C' }
 }
 
 use Method::Workflow;
-my $WF = start_workflow;
 workflow D { 'D' }
 
-is( $WF->children, 1, "Stack system + Begin puts things in the correct place" );
-is( $A::WF->children, 1, "Stack system + Begin puts things in the correct place" );
-is( $B::WF->children, 1, "Stack system + Begin puts things in the correct place" );
-is( $C::WF->children, 1, "Stack system + Begin puts things in the correct place" );
+is( root_workflow()->children,  1, "Correct Place" );
+is( A->root_workflow->children, 1, "Correct Place" );
+is( B->root_workflow->children, 1, "Correct Place" );
+is( C->root_workflow->children, 1, "Correct Place" );
 
 done_testing;

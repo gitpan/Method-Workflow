@@ -1,13 +1,19 @@
 Build.PL
 lib/Method/Workflow.pm
-lib/Method/Workflow/Stack.pm
+lib/Method/Workflow/Method.pm
+lib/Method/Workflow/Result.pm
+lib/Method/Workflow/SubClass.pm
 lib/Method/Workflow/Task.pm
 MANIFEST			This list of files
-t/Acceptance.t
-t/ClassLevel.t
-t/Ordering.t
-t/Stack.t
-t/Task.t
-t/Workflow.t
-README
 META.yml
+README
+t/ClassLevel.t
+t/FindParent.t
+t/FunctionTemplate.t
+t/lib/ParentTest.pm
+t/Load.t
+t/Ordering.t
+t/Parallel.t
+t/Task.t
+t/Templates.t
+t/Workflow.t

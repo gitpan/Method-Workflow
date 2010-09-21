@@ -1,352 +1,326 @@
 NAME
-    Method::Workflow - An OO general purpose declarative workflow framework
+    Method::Workflow - Dynamic/Nested Workflows that can act as methods on
+    an object.
 
 DESCRIPTION
-    This module provides an Object Oriented workflow framework. By default
-    this framework uses keywords for a declarative interface. Most elements
-    of the workflow are defined as methods, and will ultimately be run on a
-    specified object.
+    In this module a workflow is a sequence of methods, possibly nested,
+    associated with an object or class, that can be programmatically
+    generated, chained or mixed.
 
-    This Framowerk is intended to be used through higher level tools such as
-    Fennec. As such the API leans twords providing more choices and
-    capabilities. In most use cases an API wrapper that hides most of the
-    descisions should be implemented.
+    Generally you declare workflow methods as small parts of a greater
+    design. A good example of what this module attempts to achieve is Ruby's
+    RSPEC <http://rspec.info>. However workflows need not be restricted to
+    testing.
 
-SYNOPSYS
-    This synopsys makes no attempt to convey a use case. This is simply an
-    example of how to use the API. You define nestable workflows which
-    should define scenarios and data. You also define tasks which make use
-    of that data.
+    Example workflow (Method::Workflow::Case):
 
+    Each 'task' method will be run for each 'case' method
+
+        cases example {
+            my $target;
+            case a { $target = "case 1" }
+            case b { $target = "case 2" }
+            case c { $target = "case 2" }
+
+            action display { print "$target\n" }
+            action display_cap { print uc($target) . "\n" }
+        }
+
+        run_workflow();
+
+    Prints:
+
+        case 1
+        CASE 1
+        case 2
+        CASE 2
+        case 3
+        CASE 3
+
+SYNOPSIS
+  PACKAGE WORKFLOW
+        package MyWorkflow;
         use strict;
         use warnings;
+
         use Method::Workflow;
 
-        my @color;
+        workflow my_workflow {
+            # $self is available for free
+            $self->do_thing;
 
-        my $wf = start_workflow;
+            ...
 
-        workflow rainbow {
-            $self->do_thing; # $self is automatically given to you, it will be the
-                             # $invocant object listed below
+            # Tasks are all run after the workflow is complete, but before it
+            # returns.
+            task do_later { ... }
+        }
 
-            workflow red {
-                $self->do_thing_again; #$self is free again.
+        workflow another_workflow {
+            ...
+            task do_later { ... }
+        }
 
-                task red { push @color => 'red' }
-            }
-            workflow yellow {
+        # Creates an instance of MyWorkflow using new() if it is defined
+        # Each method in the workflow is run with the instance as $self.
+        # Result is a L<Method::Workflow::Result> object.
+
+        my $result = run_workflow( $invocant || %constructor_args );
+
+        1;
+
+  INDEPENDENT WORKFLOW
+        package MyWorkflow;
+        use strict;
+        use warnings;
+
+        use Method::Workflow;
+
+        my $wf = new_workflow root {
+            workflow my_workflow {
+                $self->do_thing;
                 ...
-                task yellow { push @color => 'yellow' }
+                task do_later { ... }
             }
-            workflow green {
+
+            workflow another_workflow {
                 ...
-                task green { push @color => 'green' }
-            }
-            workflow blue {
-                ...
-                task blue { push @color => 'blue' }
+                task do_later { ... }
             }
         }
 
-        # Define on object that the methods will be run on.
-        my $invocant = SomeClass->new() || undef;
+        my $result = $wf->run( $invocant || %constructor_args );
 
-        # What return data do we care about?
-        my @want = qw/ results task_results /;
+        1;
 
-        # Do it.
-        my ( $results, $task_results ) = $wf->run_workflow( $invocant, @want );
+    Or in one shot:
 
-WORKFLOWS AND TASKS
-    Workflows will run to depth in the order they are defined. Tasks are run
-    *after* all workflows complete. This leads to the potential for powerful
-    advanced workflows. It also leads to potential spooky action.
+        package MyWorkflow;
+        use strict;
+        use warnings;
 
-        workflow root {
-            my $thing;
+        use Method::Workflow;
 
-            workflow a {
-                $thing = 'a';
-                task { print "$thing\n" }
+        my $result = do_workflow root {
+            workflow my_workflow {
+                $self->do_thing;
+                ...
+                task do_later { ... }
             }
-            workflow b {
-                $thing = 'b';
-                task { print "$thing\n" }
+
+            workflow another_workflow {
+                ...
+                task do_later { ... }
             }
         }
 
-    This example will print b twice, that is because all workflows run
-    first, meaning the value of $thing is set to 'b' before the tasks run.
-    This is not a bug, but rather a desired feature. See
-    Method::Workflow::SPEC and Method::Workflow::Case for expamples.
-
-UNDER THE HOOD
-    Method::Workflow::Util exports several methods for manipulating 'the
-    stack'. This is not the perl stack, but rather a stack of workflows. The
-    stack is an array of workflows.
-
-    When you use the declaritive keywords such as 'workflow NAME { ... }' a
-    new workflow is created, this workflow is added as a child to the
-    topmost workflow on the stack. When a workflow is run, it is pushed anto
-    the stack as the topmost item, thus any methods declared within are
-    added to the proper parent.
-
-    When you call run_workflow() on a workflow it will run the workflows
-    method, then recurse into nested workflows. Once workflows have been run
-    to depth the tasks and errors are propogated down to the initial
-    run_workflow() call. At this point errors are handled, and tasks are
-    run.
+        1;
 
 API
-    To create a workflow without magic:
-
-        my $workflow = Methad::Workflow->new( name => $name, method => sub {
-            # When magic is used $invocant is actually shifted off as $self.
-            # $workflow is this workflow.
-            my ( $invocant, $workflow ) = @_;
-            ...
-        });
-
-    The invocant is reffered to as $self for the sake of higher level
-    libraries which will hide the workflow details from their users.
-
-  EXPORTS
-    $root_wf = start_workflow()
-        Starts a workflow and pushes it on to the stack. It is important to
-        store the workflow as it will be shifted off of the stack when the
-        reference count hits zero. It is also important to either remove all
-        references, or call $root_wf->end when you are done defining the
-        workflow.
-
+  DECLARATIVE API (EXPORTS)
     workflow NAME { ... }
-        Define an element of a workflow
+        Add a child workflow to the current workflow or class.
 
     task NAME { ... }
-        Define a task for the current workflow
+        Add a task to the current workflow or class.
 
-  ORDERING TASKS
-    There are 3 sorting options, 'ordered' (default), 'sorted', and
-    'random'. They can be specified when defining a workflow, or when
-    calling start_workflow. here is an example from the tests:
+    my $wf = new_workflow NAME { ... }
+        Create a new an independent workflow.
 
-        my @order;
-        $wf = start_workflow( sorted => 1 );
-        workflow root {
-            task c { push @order => 'c' }
-            task a { push @order => 'a' }
-            task b { push @order => 'b' }
-            task 'y' { push @order => 'y' }
-            task z { push @order => 'z' }
-            workflow x ( ordered => 1 ) {
-                task f { push @order => 'f' }
-                task e { push @order => 'e' }
-                task d { push @order => 'd' }
-            }
-        }
-        $wf->run_workflow();
+    my $result = do_workflow NAME { ... }
+        Create and run an independent workflow.
 
-        is_deeply(
-            \@order,
-            [ qw/ a b c f e d y z /],
-            "Nested re-ordering"
-        );
+        The result will be an instance of Method::Workflow::Result.
 
-  ABSTRACT METHODS
-    These are convenience methods that allow you to hook into the workflow
-    process.
+    my $result = run_workflow( $invocant || %construction_args )
+        Run the class root workflow. %construction_args will be passed to
+        the constructor for the invocant class to create the invocant
+        object. If a blessed object is the only argument than that object
+        will be used as the invocant.
 
-    $obj = $obj->init( %args )
-        Called by the constructor giving you the opportunity to change or
-        even replace the created object at construction time.
+        The result will be an instance of Method::Workflow::Result.
 
-    @list = $class->required()
-        Should return a list of attributes that are required at
-        construction.
+    import_templates( @CLASSES, @WORKFLOW_OBJS )
+        Add the specified classes and workflow objects to the list of
+        templates in the current workflow.
 
-    @list = $obj->pre_run()
-        Should return a list of coderefs that should be called after this
-        workflows method is run, but before any nested workflows are run.
+    $wf = root_workflow()
+    $wf = $class->root_workflow()
+        Get the root workflow for the current class. Can also be used as a
+        class method.
 
-    @list = $obj->post_run()
-        Should return a list of coderefs that should be called after nested
-        workflows are run.
+  OO API
+    This covers only the methods that are useful in general. Methods that
+    are not private, but not useful to most people will be covered in the
+    section titled INTERNAL API
 
-    $obj->run()
-        Should run this workflows method, and store results and errors. Here
-        is the default example.
+   SIMPLE ACCESSORS
+    These are all simple get/set accessors. They all take a single value,
+    and return the value.
 
-            sub run {
-                my $self = shift;
-                my ( $invocant ) = @_;
-                $self->push_results( $self->do( $self->method, $invocant ));
-            }
+    $value = $wf->invocant_class( $value )
+        An instance of the invocant class will be constructed and provided
+        as the first argument ($self) to the workflow mothods.
 
-  SIMPLE ACCESSORS
-    $wf->parallel( $max )
-    $max = $wf->parallel()
-        Get/Set the max number of parallel processes to use when running
-        tasks in parallel, 0 means do not run tasks in parallel.
+    $value = $wf->error_handler( sub { ... })
+        Used to define a custom error handler.
 
-    $wf->method( \&code )
-    $code = $wf->method()
-        Get/Set the method referenced by the workflow.
+    $value = $wf->parallel( $value )
+        If set to an integer tasks will be run in that number of child
+        processes.
 
-    $wf->name( $name )
-    $name = $wf->name()
-        Get/Set the workflow name.
+        NOTE Parallel tasks is still experimental and untested.
 
-    $wf->debug( $bool )
-    $bool = $wf->debug()
-        Turn debuging on/off.
+    $value = $wf->random( $value )
+        Tasks will be run in random order if true.
 
-    $ordering_type = $wf->has_ordering()
-        Return the stringified name of the ordering method, undef if none is
-        specified.
+    $value = $wf->sorted( $value )
+        Tasks will be sorted by name and then run if set to true.
 
-    $bool = $wf->ordered()
-    $wf->ordered( $bool )
-        True if tasks are to be run in the order in which they were defined.
+    $value = $wf->ordered( $value )
+        Tasks will be run in the order they were defined (default) if this
+        is true.
 
-    $bool = $wf->random()
-    $wf->random( $bool )
-        True if tasks are to be run in random order.
+    $value = $wf->name( $value )
+        Get/Set the name of the task.
 
-    $bool = $wf->sorted()
-    $wf->sorted( $bool )
-        True if tasks should be sorted
+    $value = $wf->method( $value )
+        Get/Set the coderef that is associated with this workflow.
 
-  ACTION METHODS
-    $wf->observe()
-        Mark the workflow as observed (happens when run)
+   METHODS
+    $wf = $class->new(name => $name, invocant_class => __PACKAGE__, method
+    => sub { ... })
+        Create a new instance of Method::Workflow.
 
-    $bool = $wf->observed()
-        Check if the workflow has been observed
+    $wf->init()
+        Called by new just before it returns. Useful for subclasses,
+        currently does nothing.
 
-    $wf->add_item( @items )
-    $wf->add_items( @items )
-        Add tasks/workflows to this one. (called when keywords are used)
+    $ordering = $wf->ordering()
+        Returns the name of the ordering that will be used, 'random',
+        'sorted', 'ordered', or undef if none is set.
 
-    $wf->begin()
-        Set this workflow as the current on the stack.
+    $result = $wf->run( $invocant || %constructor_args )
+        Runs the workflow against a new instance of invocant_class created
+        using %constructor_args. If a blessed object is the only argument,
+        it will be used as the invocant.
 
-    $wf->end()
-        Pop this workflow off the stack (errors if this workflow is not the
-        top)
+        The result will be an instance of Method::Workflow::Result.
 
-    @return = $wf->do( $code, $invocant )
-        Run $code as a method on $invocant. The return is what $code
-        returns.
+    $wf->add_item( $workflow || $task )
+        Add a child workflow or task to the workflow. This is primarily used
+        by the keywords.
 
-    @results = $wf->run_workflow( $invocant, @want )
-        Run the workflow. @results is an array of arrays, each inner array
-        is the list of returns for an element of @want. Possible @want
-        values are: results, errors, tasks, task_results, task_errors,
-        task_tasks.
+    @list = $wf->templates()
+        Get a list of all the workflows this class inherits from.
 
-  MANIPULATING RESULTS
-    These methods manipulate the results array which stores the return value
-    from the method with which the workflow was created. The run() method is
-    responsible for populating this.
+    $wf->push_templates( @classes, @warkflows )
+        Use the specified workflows or classes that have root workflows as
+        templates. This means $wf will inherit children and tasks form the
+        templates.
 
-    @items = $wf->results()
-        Get the results
+  INTERNAL API
+    $list_ref = $wf->templates_ref( $newref )
+        Get/Set the arrayref that holds the list of template workflows.
 
-    @items = $wf->pull_results()
-        Get the results while also deleting them from the workflow.
+    @list = $wf->pull_templates()
+        Get the list of templates while also clearing the list.
 
-    $items = $wf->results_ref()
-        Get/Set the arrayref storing the results.
+    $wf->import_templates()
+        Does the action of inheriting child workflows and tasks from the
+        templates. Should be called once per run.
 
-    $wf->push_results( @items )
-        Add results
+    @list = $wf->tasks()
+    $list_ref = $wf->tasks_ref( $newref )
+    @list = $wf->pull_tasks()
+    $task = $wf->pop_tasks()
+    $task = $wf->shift_tasks()
+    $wf->push_tasks( @tasks )
+    $wf->unshift_tasks( @tasks )
+        These are methods for manipulating the list of tasks. The list is
+        cleared at the end of a run. In general you should not use these
+        directly. Use add_item() to add tasks to a workflow.
 
-  MANIPULATING TASKS
-    @items = $wf->tasks()
-        Get the tasks
+    @list = $wf->children()
+    @classes = $wf->children_keys()
+    $wf->push_children( @workflows )
+    @list = $wf->pull_children( $class )
+    @list = $wf->pull_all_children()
+        These are methods for manipulating the list of children. The list is
+        cleared at the end of a run. In general you should not use these
+        directly. Use add_item() to add children to a workflow.
 
-    @items = $wf->pull_tasks()
-        Get the tasks while also deleting them from the workflow.
+        Some plugins may wish to make use of these to remove children of
+        their specific class and replace them with tasks.
 
-    $items = $wf->tasks_ref()
-        Get/Set the arrayref storing the tasks.
+    $wf->process_method( $invocant, $result )
+        Run the method associated with the workflow.
 
-    $wf->push_tasks( @items )
-        Add tasks
+    $wf->process( $invocant, $result )
+        Run the workflow including task sorting and template importing.
 
-  MANIPULATING ERRORS
-    @items = $wf->errors()
-        Get the errors
+    $wf->run_items( $invocant, $result, @items )
+        @items must contain workflow and/or task objects. Calls process() on
+        all items.
 
-    @items = $wf->pull_errors()
-        Get the errors while also deleting them from the workflow.
+    $wf->run_items_parallel( $invocant, $result, @items )
+        Like run_items() except items are run in parrallel using
+        Parallel::Runner.
 
-    $items = $wf->errors_ref()
-        Get/Set the arrayref storing the errors
+    $wf->run_method( $invocant )
+    $wf->run_method( $invocant, $method )
+        Runs the specified method, or the method associated with the
+        workflow. Runs the method within an Method::Workflow::Method object
+        so that keywords know to which workflow items should be added.
 
-    $wf->push_errors( @items )
-        Add errors
+    $invocant = $wf->get_invocant( $obj || %constructor_args )
+        Constructs a new instance of invocant_class. Alternatively if an
+        object is provided as an argument it will be returned as-is.
 
-  MANIPULATING NESTED WORKFLOWS
-    @items = $wf->children()
-        Get a list of all nested workflows (not to depth)
+    $wf->run_tasks( $invocant, $result, @tasks )
+        Takes care of ordering the tasks and running them, possibly in
+        parallel.
 
-    @items = $wf->pull_all_children()
-        Get all the nested workflows while also deleting them from the
-        workflow.
+    $wf->handle_errors( $result )
+        Errors are all handled after tasks have been run.
 
-    @items = $wf->pull_children( $type )
-        Get all the nested workflows of a specific type while also deleting
-        them from the workflow.
+TEMPLATES
+    Any workflow or class with a root workflow can be used as a template.
+    Essentially any workflow that uses another as a template inherits from
+    it.
 
-    $items = $wf->children_ref()
-        Get/Set the hashref storing the nested workflows.
+SEE ALSO
+  TOOLS
+    Exodist::Util
+        This module provides a huge collection of utilites used to create
+        Method::Workflow.
 
-    $wf->push_children( @items )
-        Add a nested workflow
+    Method::Workflow::Subclass
+        Any extension should make use of this to provide a keyword.
 
-    my @types = $wf->keys_children()
-        Get a list of all the types of nested workflows (What they are
-        blessed as)
+    Method::Workflow::Result
+        All workflow results are returned in a Method::Workflow::Result
+        object.
 
-  CUSTOM ERROR HANDLERS
-    $wf->error_handler( \&custom_handler )
-    $handler = $wf->error_handler()
-        Get/Set the error handler.
+    Method::Workflow::Method
+        A special method that is blessed and associated with a workflow so
+        that it can be easily found in the stack.
 
-    The error handler should be a coderef. All errors will be passed in as
-    aguments. Each error is an array, the first element is a workflow stack
-    trace, the second is the error message itself. The stack trace is an
-    array of workflow objects.
+  EXTENSIONS
+    Method::Workflow::SPEC
+        An implementation of Ruby's RSPEC.
 
-    Here is the default handler as an example:
-
-        sub default_error_handler {
-            for my $set ( @_ ) {
-                my ( $trace, $msg ) = @$set;
-                warn join(
-                    "\n  ",
-                    $msg,
-                    'Workflow Stack:',
-                    map { blessed($_) . '(' . $_->name . ')' } @$trace
-                ) . "\n";
-            }
-            die "There were errors (see above)";
-        }
-
-EXTENDING
-    To extend Method::Workflow you should subclass Method::Workflow,
-    possibly subclass Method::Workflow::Task, and familiarize yourself with
-    Method::Workflow::Stack. Also read the section 'UNDER THE HOOD'.
+    Method::Workflow::Case
+        Run multiple actions in multiple scenarios.
 
 FENNEC PROJECT
     This module is part of the Fennec project. See Fennec for more details.
-    Fennec is a project to develop an extendable and powerful testing
+    Fennec is a project to develop an extensible and powerful testing
     framework. Together the tools that make up the Fennec framework provide
     a potent testing environment.
 
     The tools provided by Fennec are also useful on their own. Sometimes a
-    tool created for Fennec is useful outside the greator framework. Such
+    tool created for Fennec is useful outside the greater framework. Such
     tools are turned into their own projects. This is one such project.
 
     Fennec - The core framework
@@ -358,7 +332,7 @@ AUTHORS
 COPYRIGHT
     Copyright (C) 2010 Chad Granum
 
-    Method-Workflow is free software; Standard perl licence.
+    Method-Workflow is free software; Standard Perl license.
 
     Method-Workflow is distributed in the hope that it will be useful, but
     WITHOUT ANY WARRANTY; without even the implied warranty of

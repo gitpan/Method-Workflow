@@ -1,8 +1,9 @@
 ---
-abstract: 'An OO general purpose declarative workflow framework'
+abstract: 'Dynamic/Nested Workflows that can act as methods on an object.'
 author:
   - 'Chad Granum <exodist7@gmail.com>'
 build_requires:
+  Fennec::Lite: 0.004
   Test::Exception: 0
   Test::More: 0.88
 configure_requires:
@@ -16,17 +17,21 @@ name: Method-Workflow
 provides:
   Method::Workflow:
     file: lib/Method/Workflow.pm
-    version: 0.100
-  Method::Workflow::Stack:
-    file: lib/Method/Workflow/Stack.pm
+    version: 0.200
+  Method::Workflow::Method:
+    file: lib/Method/Workflow/Method.pm
+  Method::Workflow::Result:
+    file: lib/Method/Workflow/Result.pm
+  Method::Workflow::SubClass:
+    file: lib/Method/Workflow/SubClass.pm
   Method::Workflow::Task:
     file: lib/Method/Workflow/Task.pm
 requires:
   Carp: 0
+  Devel::Caller: 2.05
   Devel::Declare::Parser::Fennec: 0.002
-  Exodist::Util: 0.002
-  Exporter::Declare: 0.024
-  Scalar::Util: 0
+  Exodist::Util: 0.004
+  Exporter::Declare: 0.025
   Try::Tiny: 0
   perl: 5.008
 resources:
@@ -34,4 +39,4 @@ resources:
   homepage: http://open-exodus.net/projects/Method-Workflow
   license: http://dev.perl.org/licenses/
   repository: http://github.com/exodist/Method-Workflow
-version: 0.100
+version: 0.200

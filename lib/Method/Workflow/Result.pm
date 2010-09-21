@@ -1,42 +1,64 @@
-package Method::Workflow::Task;
+package Method::Workflow::Result;
 use strict;
 use warnings;
 
-use Method::Workflow::SubClass;
 use Exodist::Util qw/array_accessors/;
-use Try::Tiny;
 
-array_accessors qw/subtasks/;
-
-keyword 'task';
-
-sub process_method {
-    my $self = shift;
-    my ( $invocant, $result ) = @_;
-
-    try   { $result->push_task_return( $self->run_method( $invocant ))}
-    catch { $result->push_errors( $_ )};
+BEGIN {
+    array_accessors qw/return tasks errors task_return/;
 }
 
-sub process {
-    my $self = shift;
-    my ( $invocant, $result ) = @_;
-
-    $self->run_tasks( $invocant, $result, $self->pull_subtasks );
-    $self->SUPER::process( $invocant, $result );
+sub new {
+    my $class = shift;
+    my %proto = @_;
+    bless( \%proto, $class );
 }
 
 1;
 
-__END__
-
 =head1 NAME
 
-Method::Workflow::Task - Basic task objects
+Method::Workflow::Result - Results of a workflow run
 
-=head1 DESCRIPTION
+=head1 PUBLIC API METHODS
 
-Tasks are nested workflows that run at the end of the workflow process.
+=over 4
+
+=item @list = $result->return()
+
+Get everything returned by the nested methods of the workflow.
+
+=item @list = $result->task_return()
+
+Get everything returned by the task methods.
+
+=item @list = $result->errors()
+
+Get all the errors.
+
+=back
+
+=head1 EXTENSIONS MAY NEED TO KNOW
+
+=over 4
+
+=item $result->push_return( $return )
+
+Add a return.
+
+=item $result->push_task_return( $return )
+
+Add a task return.
+
+=item $result->push_errors([ $workflow, $message ])
+
+Add errors.
+
+=item $result->push_tasks( @tasks )
+
+Add tasks to be run (cleared at the end of the run.)
+
+=back
 
 =head1 FENNEC PROJECT
 

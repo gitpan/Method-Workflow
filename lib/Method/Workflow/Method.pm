@@ -1,42 +1,28 @@
-package Method::Workflow::Task;
+package Method::Workflow::Method;
 use strict;
 use warnings;
 
-use Method::Workflow::SubClass;
-use Exodist::Util qw/array_accessors/;
-use Try::Tiny;
+use Exodist::Util qw/ blessed /;
+use Carp qw/ croak /;
+use base 'Exodist::Util::Sub';
 
-array_accessors qw/subtasks/;
-
-keyword 'task';
-
-sub process_method {
-    my $self = shift;
-    my ( $invocant, $result ) = @_;
-
-    try   { $result->push_task_return( $self->run_method( $invocant ))}
-    catch { $result->push_errors( $_ )};
-}
-
-sub process {
-    my $self = shift;
-    my ( $invocant, $result ) = @_;
-
-    $self->run_tasks( $invocant, $result, $self->pull_subtasks );
-    $self->SUPER::process( $invocant, $result );
-}
+sub workflow { shift->stash->{ workflow }}
 
 1;
 
-__END__
-
 =head1 NAME
 
-Method::Workflow::Task - Basic task objects
+Method::Workflow::Method - Blessed methods associated weth workflows
 
-=head1 DESCRIPTION
+=head1 METHODS
 
-Tasks are nested workflows that run at the end of the workflow process.
+=over 4
+
+=item $wf = $method->workflow()
+
+Return the associated workflow.
+
+=back
 
 =head1 FENNEC PROJECT
 

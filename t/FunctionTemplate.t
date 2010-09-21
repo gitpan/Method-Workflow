@@ -2,10 +2,8 @@
 use strict;
 use warnings;
 
-use Test::More;
-use Test::Exception;
+use Fennec::Lite;
 use Exodist::Util::Accessors qw/:all/;
-use Method::Workflow::Stack qw/:all/;
 
 our $CLASS;
 BEGIN {
@@ -47,18 +45,21 @@ BEGIN {
 
 # Run twice to check reusability
 for ( 1 .. 2 ) {
-    ok( !stack_peek, "Stack clear" );
-    my $wf = start_workflow;
-    is( stack_peek, $wf, "Stack set" );
-    my $order = WFTemplate::insert_rainbow;
-    is_deeply( $order, [], "Nothing yet" );
-    my @out = $wf->run_workflow( undef, qw/results task_results/ );
+    my $order;
+    my $wf = new_workflow test { $order = WFTemplate::insert_rainbow; 'root' };
+    is_deeply( $order, undef, "Nothing yet" );
+    my $result = $wf->run();
     is_deeply(
-        \@out,
-        [
-            [ 'rainbow complete', 'red complete', 'yellow complete', 'green complete', 'blue complete', ],
-            [ qw/ red yellow green blue /],
-        ],
+        $result,
+        {
+            return_ref => [
+                'root', 'rainbow complete', 'red complete', 'yellow complete',
+                'green complete', 'blue complete',
+            ],
+            task_return_ref => [ qw/ red yellow green blue /],
+            errors_ref => [],
+            tasks_ref => [],
+        },
         "Got results"
     );
     is_deeply(
@@ -70,11 +71,5 @@ for ( 1 .. 2 ) {
         "Order is correct",
     );
 }
-
-ok( !stack_peek, "Stack cleared" );
-
-throws_ok { workflow OOPS { 1 } }
-    qr/No current workflow, did you forget to run start_workflow\(\) or \$workflow->begin\(\)\?/,
-    "Useful error";
 
 done_testing;

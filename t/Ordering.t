@@ -16,33 +16,32 @@ sub shuffle (@) {
 }
 
 use Test::More;
-use Method::Workflow::Stack qw/:all/;
 our $CLASS;
 BEGIN {
     $CLASS = 'Method::Workflow';
     require_ok $CLASS;
     no warnings 'redefine';
     *Method::Workflow::shuffle = \&shuffle;
-    $CLASS->import();
+    $CLASS->import( ':random' );
 }
 
 sub insert_rainbow {
     my @order;
     workflow rainbow {
-        workflow red {
-            task red { push @order => 'red'; 'red' }
+        workflow wred {
+            task tred { push @order => 'red'; 'red' }
             push @order => 'red complete'; 'red complete';
         }
-        workflow yellow {
-            task yellow { push @order => 'yellow'; 'yellow' }
+        workflow wyellow {
+            task tyellow { push @order => 'yellow'; 'yellow' }
             push @order => 'yellow complete'; 'yellow complete';
         }
-        workflow green {
-            task green { push @order => 'green'; 'green' }
+        workflow wgreen {
+            task tgreen { push @order => 'green'; 'green' }
             push @order => 'green complete'; 'green complete';
         }
-        workflow blue {
-            task blue { push @order => 'blue'; 'blue' }
+        workflow wblue {
+            task tblue { push @order => 'blue'; 'blue' }
             push @order => 'blue complete'; 'blue complete';
         }
         push @order => 'rainbow complete'; 'rainbow complete';
@@ -50,10 +49,40 @@ sub insert_rainbow {
     return \@order;
 }
 
-my $wf = start_workflow( random => 1 );
 my $order = insert_rainbow;
 is_deeply( $order, [], "Nothing yet" );
-my @out = $wf->run_workflow( undef, qw/results task_results/ );
+
+#use Exodist::Util qw/package_subs blessed/;
+#use Time::HiRes qw/sleep/;
+#my $indent = 1;
+#for my $name ( package_subs( 'Method::Workflow' )) {
+#    next if grep { $name eq $_ } qw/ blessed shuffle finally try first catch /;
+#
+#    no warnings 'redefine';
+#    no strict 'refs';
+#    my $current = Method::Workflow->can($name);
+#    *{"Method::Workflow::$name"} = sub {
+#        my $wf = blessed($_[0]) ? ($_[0]->{name} || "unnamed") : "--";
+#        $indent++;
+#        print $wf . ( " " x $indent ) . "start $name\n";
+#        if ( wantarray ) {
+#            my @out = $current->( @_ );
+#            $indent--;
+#            print $wf . ( " " x $indent ) . "end $name\n";
+#            sleep 0.05;
+#            return @out;
+#        }
+#        else {
+#            my $out = $current->( @_ );
+#            $indent--;
+#            print $wf . ( " " x $indent ) . "end $name\n";
+#            sleep 0.05;
+#            return $out;
+#        }
+#    }
+#}
+
+my $result = run_workflow();
 is_deeply(
     $order,
     [
@@ -63,10 +92,10 @@ is_deeply(
     "Order is correct",
 );
 
-$wf = start_workflow( sorted => 1 );
-$order = insert_rainbow;
+$order = [];
+my $wf = new_workflow test ( sorted => 1 ) { $order = insert_rainbow }
 is_deeply( $order, [], "Nothing yet" );
-@out = $wf->run_workflow( undef, qw/results task_results/ );
+$result = $wf->run( );
 is_deeply(
     $order,
     [
@@ -76,25 +105,30 @@ is_deeply(
     "Order is correct",
 );
 
-my @order;
-$wf = start_workflow( sorted => 1 );
-workflow root {
-    task c { push @order => 'c' }
-    task a { push @order => 'a' }
-    task b { push @order => 'b' }
-    task 'y' { push @order => 'y' }
-    task z { push @order => 'z' }
-    workflow x ( ordered => 1 ) {
-        task f { push @order => 'f' }
-        task e { push @order => 'e' }
-        task d { push @order => 'd' }
+$order = [];
+$wf = new_workflow root ( sorted => 1 ) {
+    task c { push @$order => 'c' }
+    task a { push @$order => 'a' }
+    task b { push @$order => 'b' }
+    task x { push @$order => 'x' }
+    task 'y' { push @$order => 'y' }
+    workflow w ( ordered => 1 ) {
+        task f { push @$order => 'f' }
+        task e { push @$order => 'e' }
+        task d { push @$order => 'd' }
+    }
+    workflow z ( random => 1 ) {
+        task g { push @$order => 'g' }
+        task h { push @$order => 'h' }
+        task i { push @$order => 'i' }
+        task j { push @$order => 'j' }
     }
 }
-$wf->run_workflow();
+$wf->run();
 
 is_deeply(
-    \@order,
-    [ qw/ a b c f e d y z /],
+    $order,
+    [ qw/ a b c f e d x y j g i h /],
     "Nested re-ordering"
 );
 

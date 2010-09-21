@@ -10,18 +10,19 @@ my $build = Module::Build->new(
     dist_author => 'Chad Granum <exodist7@gmail.com>',
     create_readme => 1,
     requires => {
-        'Scalar::Util' => 0,
         'Try::Tiny' => 0,
-        'Exporter::Declare' => '0.024',
-        'Exodist::Util' => '0.002',
+        'Exporter::Declare' => '0.025',
+        'Exodist::Util' => '0.004',
         'Devel::Declare::Parser::Fennec' => '0.002',
         'perl' => 5.008,
         'Carp' => 0,
+        'Devel::Caller' => '2.05',
     },
     recommonds => {
-        'Parallel::Runner' => '0.008',
+        'Parallel::Runner' => '0.009',
     },
     build_requires => {
+        'Fennec::Lite' => '0.004',
         'Test::More' => 0.88,
         'Test::Exception' => 0,
     },
