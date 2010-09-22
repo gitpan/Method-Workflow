@@ -2,7 +2,7 @@ package Method::Workflow;
 use strict;
 use warnings;
 
-our $VERSION = '0.200';
+our $VERSION = '0.201';
 
 use Try::Tiny;
 use Exporter::Declare;

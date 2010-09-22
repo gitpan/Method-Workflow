@@ -16,14 +16,8 @@ sub process_method {
 
     try   { $result->push_task_return( $self->run_method( $invocant ))}
     catch { $result->push_errors( $_ )};
-}
-
-sub process {
-    my $self = shift;
-    my ( $invocant, $result ) = @_;
 
     $self->run_tasks( $invocant, $result, $self->pull_subtasks );
-    $self->SUPER::process( $invocant, $result );
 }
 
 1;
