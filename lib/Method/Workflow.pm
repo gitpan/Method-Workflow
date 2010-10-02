@@ -2,10 +2,10 @@ package Method::Workflow;
 use strict;
 use warnings;
 
-our $VERSION = '0.201';
+our $VERSION = '0.202';
 
 use Try::Tiny;
-use Exporter::Declare;
+use Exporter::Declare '-all';
 use Method::Workflow::SubClass ':nobase';
 use Devel::Declare::Parser::Fennec;
 use Carp qw/croak/;
@@ -29,7 +29,7 @@ alias qw/
 
 keyword 'workflow';
 
-export new_workflow fennec {
+default_export new_workflow fennec {
     my $name = shift;
     my $method = pop( @_ ) if @_ == 1;
     my $caller = caller;
@@ -42,7 +42,7 @@ export new_workflow fennec {
     );
 }
 
-export do_workflow fennec {
+default_export do_workflow fennec {
     my $name = shift;
     my $method = pop( @_ ) if @_ == 1;
     my $caller = caller;
@@ -55,9 +55,9 @@ export do_workflow fennec {
     )->run;
 }
 
-export run_workflow { caller()->root_workflow->run( @_ ) }
+default_export run_workflow { caller()->root_workflow->run( @_ ) }
 
-export import_templates {
+default_export import_templates {
     my $caller = caller;
     parent_workflow( $caller )->push_templates( @_ )
 }
@@ -86,7 +86,7 @@ category_accessors qw/
 
 sub init {}
 
-sub _import {
+sub after_import {
     my $class = shift;
     my ( $caller, $specs ) = @_;
     Task->export_to( $caller );
@@ -95,9 +95,9 @@ sub _import {
         my $root = __PACKAGE__->new(
             name => $caller,
             invocant_class => $caller,
-            $specs->{ random  } ? ( random => 1  ) : (),
-            $specs->{ sorted  } ? ( sorted => 1  ) : (),
-            $specs->{ ordered } ? ( ordered => 1 ) : (),
+            $specs->config->{ random  } ? ( random => 1  ) : (),
+            $specs->config->{ sorted  } ? ( sorted => 1  ) : (),
+            $specs->config->{ ordered } ? ( ordered => 1 ) : (),
         );
         inject_sub( $caller, 'root_workflow', sub { $root });
     }

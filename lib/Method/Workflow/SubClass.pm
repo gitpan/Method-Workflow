@@ -1,7 +1,7 @@
 package Method::Workflow::SubClass;
 use strict;
 use warnings;
-use Exporter::Declare;
+use Exporter::Declare '-all';
 use Devel::Caller qw/ caller_cv /;
 use Exodist::Util qw/
     inject_sub
@@ -14,11 +14,27 @@ alias qw/
     Method::Workflow::Method
 /;
 
-sub _import {
+reexport 'Exporter::Declare';
+exports qw/
+    parent_workflow
+    keyword
+/;
+
+export_tag default => qw/
+    export
+    default_export
+    export_to
+    parent_workflow
+    keyword
+/;
+
+export_tag nobase => qw/ -default /;
+
+sub after_import {
     my $class = shift;
     my ( $caller, $specs ) = @_;
 
-    return 1 if $specs->{'nobase'};
+    return 1 if $specs->config->{'nobase'};
 
     Exporter::Declare->export_to( $caller );
 
@@ -26,7 +42,6 @@ sub _import {
     push @{"$caller\::ISA"} => Workflow();
 }
 
-export( 'parent_workflow' );
 sub parent_workflow {
     my $level = 0;
 
@@ -50,7 +65,6 @@ sub parent_workflow {
     return $package->root_workflow;
 }
 
-export 'keyword';
 sub keyword {
     my ( $keyword, $createclass ) = @_;
     my $wfclass = caller;
@@ -58,7 +72,7 @@ sub keyword {
 
     inject_sub( $wfclass, 'keyword', sub { $keyword }, 1 );
 
-    $wfclass->export(
+    $wfclass->default_export(
         $keyword,
         'fennec',
         sub {
