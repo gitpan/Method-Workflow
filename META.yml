@@ -8,7 +8,7 @@ build_requires:
   Test::More: 0.88
 configure_requires:
   Module::Build: 0.36
-generated_by: 'Module::Build version 0.3607'
+generated_by: 'Module::Build version 0.3603'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -17,7 +17,7 @@ name: Method-Workflow
 provides:
   Method::Workflow:
     file: lib/Method/Workflow.pm
-    version: 0.202
+    version: 0.203
   Method::Workflow::Method:
     file: lib/Method/Workflow/Method.pm
   Method::Workflow::Result:
@@ -29,9 +29,9 @@ provides:
 requires:
   Carp: 0
   Devel::Caller: 2.05
-  Devel::Declare::Parser::Fennec: 0.002
-  Exodist::Util: 0.004
-  Exporter::Declare: 0.100
+  Devel::Declare::Parser::Fennec: 0.004
+  Exodist::Util: 0.006
+  Exporter::Declare: 0.102
   Try::Tiny: 0
   perl: 5.008
 resources:
@@ -39,4 +39,4 @@ resources:
   homepage: http://open-exodus.net/projects/Method-Workflow
   license: http://dev.perl.org/licenses/
   repository: http://github.com/exodist/Method-Workflow
-version: 0.202
+version: 0.203

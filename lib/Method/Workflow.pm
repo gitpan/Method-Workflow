@@ -2,10 +2,10 @@ package Method::Workflow;
 use strict;
 use warnings;
 
-our $VERSION = '0.202';
+our $VERSION = '0.203';
 
 use Try::Tiny;
-use Exporter::Declare '-all';
+use Exporter::Declare qw/ -magic -all /;
 use Method::Workflow::SubClass ':nobase';
 use Devel::Declare::Parser::Fennec;
 use Carp qw/croak/;

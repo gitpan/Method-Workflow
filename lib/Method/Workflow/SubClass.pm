@@ -1,29 +1,17 @@
 package Method::Workflow::SubClass;
 use strict;
 use warnings;
-use Exporter::Declare '-all';
+use Exporter::Declare qw/ -magic -all /;
 use Devel::Caller qw/ caller_cv /;
 use Exodist::Util qw/
     inject_sub
-    alias
     blessed
 /;
 
-alias qw/
-    Method::Workflow
-    Method::Workflow::Method
-/;
+sub Workflow { 'Method::Workflow'         }
+sub Method   { 'Method::Workflow::Method' }
 
-reexport 'Exporter::Declare';
-exports qw/
-    parent_workflow
-    keyword
-/;
-
-export_tag default => qw/
-    export
-    default_export
-    export_to
+default_exports qw/
     parent_workflow
     keyword
 /;
@@ -36,7 +24,12 @@ sub after_import {
 
     return 1 if $specs->config->{'nobase'};
 
-    Exporter::Declare->export_to( $caller );
+    Exporter::Declare->export_to( $caller, qw/export_to/ );
+    Exporter::Declare::export_to(
+        'Exporter::Declare::Magic',
+        $caller,
+        qw/export default_export/
+    );
 
     no strict 'refs';
     push @{"$caller\::ISA"} => Workflow();
