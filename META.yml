@@ -17,7 +17,7 @@ name: Method-Workflow
 provides:
   Method::Workflow:
     file: lib/Method/Workflow.pm
-    version: 0.203
+    version: 0.204
   Method::Workflow::Method:
     file: lib/Method/Workflow/Method.pm
   Method::Workflow::Result:
@@ -30,7 +30,7 @@ requires:
   Carp: 0
   Devel::Caller: 2.05
   Devel::Declare::Parser::Fennec: 0.004
-  Exodist::Util: 0.006
+  Exodist::Util: 0.007
   Exporter::Declare: 0.102
   Try::Tiny: 0
   perl: 5.008
@@ -39,4 +39,4 @@ resources:
   homepage: http://open-exodus.net/projects/Method-Workflow
   license: http://dev.perl.org/licenses/
   repository: http://github.com/exodist/Method-Workflow
-version: 0.203
+version: 0.204
